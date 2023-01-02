@@ -243,11 +243,11 @@ class Video extends Component {
 		let height = ""
 		let width = ""
 		if (elms === 0 || elms === 1) {
-			width = "100%"
-			// height = "100%"
+			// width = "100%"
+			height = "100%"
 		} else if (elms === 2) {
 			width = "45%"
-			height = "100%"
+			height = "auto"
 		} else if (elms === 3 || elms === 4) {
 			width = "35%"
 			// height = "50%"
@@ -260,7 +260,7 @@ class Video extends Component {
 			videos[a].style.minWidth = minWidth
 			videos[a].style.minHeight = minHeight
 			videos[a].style.setProperty("width", width)
-			// videos[a].style.setProperty("height", height)
+			videos[a].style.setProperty("height", height)
 		}
 
 		return { minWidth, minHeight, width, height }
