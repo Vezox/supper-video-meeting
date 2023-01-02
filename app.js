@@ -12,10 +12,10 @@ var io = require('socket.io')(server)
 app.use(cors())
 app.use(bodyParser.json())
 
-if(process.env.NODE_ENV==='production'){
-	app.use(express.static(__dirname+"/build"))
+if (process.env.NODE_ENV === 'production') {
+	app.use(express.static(__dirname + "/build"))
 	app.get("*", (req, res) => {
-		res.sendFile(path.join(__dirname+"/build/index.html"))
+		res.sendFile(path.join(__dirname + "/build/index.html"))
 	})
 }
 app.set('port', (process.env.PORT || 4001))
@@ -27,24 +27,27 @@ sanitizeString = (str) => {
 connections = {}
 messages = {}
 timeOnline = {}
+users = {}
+
 
 io.on('connection', (socket) => {
 
-	socket.on('join-call', (path) => {
-		if(connections[path] === undefined){
+	socket.on('join-call', ({ path, name, room }) => {
+		if (connections[path] === undefined) {
 			connections[path] = []
+			users[path] = []
 		}
+		users[path].push({ name: name, socketId: socket.id, room: room })
+
 		connections[path].push(socket.id)
 
-		timeOnline[socket.id] = new Date()
-
-		for(let a = 0; a < connections[path].length; ++a){
-			io.to(connections[path][a]).emit("user-joined", socket.id, connections[path])
+		for (let a = 0; a < connections[path].length; ++a) {
+			io.to(connections[path][a]).emit("user-joined", socket.id, users[path], connections[path])
 		}
 
-		if(messages[path] !== undefined){
-			for(let a = 0; a < messages[path].length; ++a){
-				io.to(socket.id).emit("chat-message", messages[path][a]['data'], 
+		if (messages[path] !== undefined) {
+			for (let a = 0; a < messages[path].length; ++a) {
+				io.to(socket.id).emit("chat-message", messages[path][a]['data'],
 					messages[path][a]['sender'], messages[path][a]['socket-id-sender'])
 			}
 		}
@@ -63,22 +66,22 @@ io.on('connection', (socket) => {
 		var key
 		var ok = false
 		for (const [k, v] of Object.entries(connections)) {
-			for(let a = 0; a < v.length; ++a){
-				if(v[a] === socket.id){
+			for (let a = 0; a < v.length; ++a) {
+				if (v[a] === socket.id) {
 					key = k
 					ok = true
 				}
 			}
 		}
 
-		if(ok === true){
-			if(messages[key] === undefined){
+		if (ok === true) {
+			if (messages[key] === undefined) {
 				messages[key] = []
 			}
-			messages[key].push({"sender": sender, "data": data, "socket-id-sender": socket.id})
+			messages[key].push({ "sender": sender, "data": data, "socket-id-sender": socket.id })
 			console.log("message", key, ":", sender, data)
 
-			for(let a = 0; a < connections[key].length; ++a){
+			for (let a = 0; a < connections[key].length; ++a) {
 				io.to(connections[key][a]).emit("chat-message", data, sender, socket.id)
 			}
 		}
@@ -88,25 +91,27 @@ io.on('connection', (socket) => {
 		var diffTime = Math.abs(timeOnline[socket.id] - new Date())
 		var key
 		for (const [k, v] of JSON.parse(JSON.stringify(Object.entries(connections)))) {
-			for(let a = 0; a < v.length; ++a){
-				if(v[a] === socket.id){
+			for (let a = 0; a < v.length; ++a) {
+				if (v[a] === socket.id) {
 					key = k
 
-					for(let a = 0; a < connections[key].length; ++a){
+					for (let a = 0; a < connections[key].length; ++a) {
 						io.to(connections[key][a]).emit("user-left", socket.id)
 					}
-			
+
 					var index = connections[key].indexOf(socket.id)
 					connections[key].splice(index, 1)
 
 					console.log(key, socket.id, Math.ceil(diffTime / 1000))
 
-					if(connections[key].length === 0){
+					if (connections[key].length === 0) {
 						delete connections[key]
 					}
 				}
 			}
 		}
+		users[key] = users[key].filter((user) => user.socketId !== socket.id)
+		socket.broadcast.emit('user-disconnected', users[key])
 	})
 })
 

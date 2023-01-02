@@ -11,6 +11,8 @@ import ScreenShareIcon from '@material-ui/icons/ScreenShare'
 import StopScreenShareIcon from '@material-ui/icons/StopScreenShare'
 import CallEndIcon from '@material-ui/icons/CallEnd'
 import ChatIcon from '@material-ui/icons/Chat'
+import PeopleAltIcon from '@material-ui/icons/PeopleAlt';
+import AccountCircleIcon from '@material-ui/icons/AccountCircle';
 import { Row } from 'reactstrap'
 import Modal from 'react-bootstrap/Modal'
 import 'bootstrap/dist/css/bootstrap.css'
@@ -43,12 +45,14 @@ class Video extends Component {
 			audio: false,
 			screen: false,
 			showModal: false,
+			showListUser: false,
 			screenAvailable: false,
 			messages: [],
 			message: "",
 			newmessages: 0,
 			askForUsername: true,
-			username: faker.internet.userName(),
+			username: faker.internet.userName("Anh"),
+			listUser: [],
 		}
 		connections = {}
 
@@ -104,6 +108,11 @@ class Video extends Component {
 				let tracks = this.localVideoref.current.srcObject.getTracks()
 				tracks.forEach(track => track.stop())
 			} catch (e) { }
+		}
+
+
+		if (!this.state.video  && !this.state.screen) {
+
 		}
 	}
 
@@ -242,9 +251,10 @@ class Video extends Component {
 		// let height = String(100 / elms) + "%"
 		let height = ""
 		let width = ""
+
 		if (elms === 0 || elms === 1) {
-			// width = "100%"
-			height = "100%"
+			width = "100%"
+			height = ""
 		} else if (elms === 2) {
 			width = "45%"
 			height = "auto"
@@ -272,7 +282,7 @@ class Video extends Component {
 		socket.on('signal', this.gotMessageFromServer)
 
 		socket.on('connect', () => {
-			socket.emit('join-call', window.location.href)
+			socket.emit('join-call', { path: window.location.href, name: this.state.username, room: this.state.room })
 			socketId = socket.id
 
 			socket.on('chat-message', this.addMessage)
@@ -288,7 +298,8 @@ class Video extends Component {
 				}
 			})
 
-			socket.on('user-joined', (id, clients) => {
+			socket.on('user-joined', (id, names, clients) => {
+				this.setState({ listUser: names })
 				clients.forEach((socketListId) => {
 					connections[socketListId] = new RTCPeerConnection(peerConnectionConfig)
 					// Wait for their ice candidate       
@@ -356,6 +367,10 @@ class Video extends Component {
 					}
 				}
 			})
+
+			socket.on("user-disconnected", names => {
+				this.setState({ listUser: names })
+			})
 		})
 	}
 
@@ -382,12 +397,15 @@ class Video extends Component {
 		try {
 			let tracks = this.localVideoref.current.srcObject.getTracks()
 			tracks.forEach(track => track.stop())
+
 		} catch (e) { }
 		window.location.href = "/"
 	}
 
 	openChat = () => this.setState({ showModal: true, newmessages: 0 })
 	closeChat = () => this.setState({ showModal: false })
+	openListUser = () => this.setState({ showListUser: true })
+	closeListUser = () => this.setState({ showListUser: false })
 	handleMessage = (e) => this.setState({ message: e.target.value })
 
 	addMessage = (data, sender, socketIdSender) => {
@@ -460,9 +478,9 @@ class Video extends Component {
 							background: "white", width: "30%", height: "auto", padding: "20px", minWidth: "400px",
 							textAlign: "center", margin: "auto", marginTop: "50px", justifyContent: "center"
 						}}>
-							<p style={{ margin: 0, fontWeight: "bold", paddingRight: "50px" }}>Set your username</p>
+							<p style={{ margin: 0, fontWeight: "bold", paddingRight: "50px" }}>Nhập tên của bạn</p>
 							<Input placeholder="Username" value={this.state.username} onChange={e => this.handleUsername(e)} />
-							<Button variant="contained" color="primary" onClick={this.connect} style={{ margin: "20px" }}>Connect</Button>
+							<Button variant="contained" color="primary" onClick={this.connect} style={{ margin: "20px" }}>Kết nối</Button>
 						</div>
 
 						<div style={{ justifyContent: "center", textAlign: "center", paddingTop: "40px" }}>
@@ -497,37 +515,57 @@ class Video extends Component {
 									<ChatIcon />
 								</IconButton>
 							</Badge>
+
+							<Badge badgeContent={this.state.listUser.length} max={999} color="primary" onClick={this.openListUser}>
+								<IconButton style={{ color: "#424242" }} onClick={this.openListUser}>
+									<PeopleAltIcon />
+								</IconButton>
+							</Badge>
 						</div>
 
-						<Modal show={this.state.showModal} onHide={this.closeChat} style={{ zIndex: "999999" }}>
-							<Modal.Header closeButton>
-								<Modal.Title>Chat Room</Modal.Title>
-							</Modal.Header>
-							<Modal.Body style={{ overflow: "auto", overflowY: "auto", height: "400px", textAlign: "left" }} >
-								{this.state.messages.length > 0 ? this.state.messages.map((item, index) => (
-									<div key={index} style={{ textAlign: "left" }}>
-										<p style={{ wordBreak: "break-all" }}><b>{item.sender}</b>: {item.data}</p>
-									</div>
-								)) : <p>No message yet</p>}
-							</Modal.Body>
-							<Modal.Footer className="div-send-msg">
-								<Input placeholder="Message" value={this.state.message} onChange={e => this.handleMessage(e)} />
-								<Button variant="contained" color="primary" onClick={this.sendMessage}>Send</Button>
-							</Modal.Footer>
-						</Modal>
-
 						<div className="container">
+
+							<Modal show={this.state.showModal} onHide={this.closeChat} style={{ zIndex: "999999" }}>
+								<Modal.Header closeButton>
+									<Modal.Title>Phòng chat</Modal.Title>
+								</Modal.Header>
+								<Modal.Body style={{ overflow: "auto", overflowY: "auto", height: "400px", textAlign: "left" }} >
+									{this.state.messages.length > 0 ? this.state.messages.map((item, index) => (
+										<div key={index} style={{ textAlign: "left" }}>
+											<p style={{ wordBreak: "break-all" }}><b>{item.sender}</b>: {item.data}</p>
+										</div>
+									)) : <p>Không có tin nhắn</p>}
+								</Modal.Body>
+								<Modal.Footer className="div-send-msg">
+									<Input placeholder="Message" value={this.state.message} onChange={e => this.handleMessage(e)} />
+									<Button variant="contained" color="primary" onClick={this.sendMessage}>Gửi</Button>
+								</Modal.Footer>
+							</Modal>
+
+							<Modal show={this.state.showListUser} onHide={this.closeListUser} style={{ zIndex: "999999" }}>
+								<Modal.Header closeButton>
+									<Modal.Title>Danh sách người tham gia</Modal.Title>
+								</Modal.Header>
+								<Modal.Body style={{ overflow: "auto", overflowY: "auto", height: "400px", textAlign: "left" }} >
+									{this.state.listUser.map((item, index) => (
+										<div key={index} style={{ textAlign: "left", display: "flex" }}>
+											<AccountCircleIcon /><p style={{ wordBreak: "break-all", paddingLeft: "4px" }}><b>{item.name}</b></p>
+										</div>
+									))}
+								</Modal.Body>
+							</Modal>
 							<div style={{ paddingTop: "20px" }}>
 								<Input value={window.location.href} disable="true"></Input>
 								<Button style={{
 									backgroundColor: "#3f51b5", color: "whitesmoke", marginLeft: "20px",
 									marginTop: "10px", width: "120px", fontSize: "10px"
-								}} onClick={this.copyUrl}>Copy invite link</Button>
+								}} onClick={this.copyUrl}>Sao chép đường dẫn</Button>
 							</div>
 
 							<Row id="main" className="flex-container" style={{ margin: 0, padding: 0 }}>
 								<video id="my-video" ref={this.localVideoref} autoPlay muted style={{
 									borderStyle: "solid", borderColor: "#bdbdbd", margin: "10px", objectFit: "fill",
+									height: "100%"
 								}}></video>
 							</Row>
 						</div>
