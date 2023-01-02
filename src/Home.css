@@ -1,16 +1,71 @@
-html, body {
-  	height: 100%;
+html,
+body {
+  height: 100%;
 }
 body {
-	margin: 0;
-	text-align: center;
-	background-color: whitesmoke;
+  margin: 0;
+  text-align: center;
+  background-color: #ffffff;
 }
 
 .container2 {
-	padding-top: 30px;
-	margin: auto;
-	align-items: center;
-	justify-content: center;
-	text-align: center;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.boxJoin {
+  margin-top: 32px;
+}
+
+.header {
+  height: 48px;
+  background-color: #20B2AA;
+}
+
+.boxLogo {
+  padding: 0px 16px;
+}
+
+.footer {
+  min-height: 96px;
+  background-color: #20B2AA;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  flex-direction: column;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.title {
+  margin-top: 96px;
+  font-weight: bold;
+  color: #008B8B;
+  font-size: 36px;
+  text-align: center;
+  max-width: 800px;
+}
+
+.colorWhile {
+  color: #ffffff;
+}
+
+.colorRed {
+  color: #ff0000;
+}
+
+.subTitle {
+  font-size: 18px;
+  max-width: 1000px;
+  text-align: center;
+  margin-top: 16px;
 }
